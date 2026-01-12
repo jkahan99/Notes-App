@@ -15,6 +15,10 @@ export default function NoteEditorScreen({ route, navigation }: any) {
   const [content, setContent] = useState(note.content);
   const richText = useRef(null);//new for the ricktext
 
+  const getTitle = (content: string): string => {
+  const firstLine = content.split('\n')[0];
+  return firstLine.trim() || 'Untitled';
+};
   useEffect(() => {
     return () => {
       // Save when leaving the screen
@@ -38,21 +42,21 @@ export default function NoteEditorScreen({ route, navigation }: any) {
     />
     
     <RichToolbar
-      editor={richText}
-      actions={[
-        actions.setBold,
-        actions.setItalic,
-        actions.setUnderline,
-        actions.setStrikethrough,
-        actions.heading1,
-        actions.insertBulletsList,
-        actions.insertOrderedList,
-        actions.checkboxList,
-        actions.undo,
-        actions.redo,
-      ]}
-      style={styles.toolbar}
-    />
+    editor={richText}
+    actions={[
+    actions.setBold,
+    actions.setItalic,
+    actions.setUnderline,
+    actions.heading1,
+    actions.insertBulletsList,
+    actions.insertOrderedList,
+    actions.undo,
+    actions.redo,
+  ]}
+  iconTint="#000000"          // ADD THIS - makes inactive icons black
+  selectedIconTint="#007AFF"  // ADD THIS - makes active icons blue
+  style={styles.toolbar}
+/>
     
     <RichEditor
       ref={richText}
@@ -83,6 +87,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    minHeight: 50,              // ADD THIS
+
   },
   richEditor: {
     flex: 1,

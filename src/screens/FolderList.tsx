@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, StyleSheet } 
 import AddFolderButton from '../components/addFolderButton';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AntDesign } from '@expo/vector-icons';
 
 type FolderListScreenProps = {
   navigation: any;
@@ -36,11 +37,22 @@ export default function FolderList({ navigation }: FolderListScreenProps) {
   setFolders(updatedFolders);
 };
 
+const deleteFolder = (indexToDelete: number) => {
+  const updatedFolders = folders.filter((_, index) => index !== indexToDelete);
+  setFolders(updatedFolders);
+};
+
+
 const loadFolders = async () => {
   try {
     const savedFolders = await AsyncStorage.getItem('folders');
     if (savedFolders !== null) {
       setFolders(JSON.parse(savedFolders));
+    }
+    else {
+      // No folders exist, create default "Notes" folder
+      const defaultFolder: Folder = { name: 'Default Notes', notes: [] };
+      setFolders([defaultFolder]);
     }
   } catch (error) {
     console.error('Failed to load folders:', error);
@@ -60,9 +72,7 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (folders.length > 0) {
     saveFolders();
-  }
 }, [folders]);
 
 
@@ -75,18 +85,22 @@ useEffect(() => {
           data={folders}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item, index }) => (
-            <TouchableOpacity 
-                style={styles.folderItem} 
-                onPress={() => navigation.navigate('Notes', { // push vs naviagte
-      
-                folderName: item.name,
-                folderIndex: index,
-                notes: item.notes,
-                updateNotes: (newNotes: Note[]) => updateFolderNotes(index, newNotes),
-  })}
->
-  <Text style={styles.folderText}>{item.name}</Text>
-</TouchableOpacity>
+            <View style={styles.folderItem}>
+              <TouchableOpacity 
+                style={styles.folderContent}
+                onPress={() => navigation.navigate('Notes', {
+                  folderName: item.name,
+                  folderIndex: index,
+                  notes: item.notes,
+                  updateNotes: (newNotes: Note[]) => updateFolderNotes(index, newNotes),
+                })}
+              >
+                <Text style={styles.folderText}>{item.name}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => deleteFolder(index)}>
+                <AntDesign name="delete" size={20} color="red" />
+              </TouchableOpacity>
+            </View>
           )}
           ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>No folders yet</Text>}
         />
@@ -122,7 +136,19 @@ const styles = StyleSheet.create({
   header: { backgroundColor: 'yellow', paddingTop: 50, paddingBottom: 20, alignItems: 'center' },
   headerText: { fontSize: 28, fontWeight: 'bold' },
   body: { flex: 1, backgroundColor: '#f8f8f8', padding: 20 },
-  folderItem: { padding: 15, backgroundColor: '#fff', borderRadius: 8, marginBottom: 10, elevation: 2 },
+  folderItem: { 
+    padding: 15, 
+    backgroundColor: '#fff', 
+    borderRadius: 8, 
+    marginBottom: 10, 
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  folderContent: {
+    flex: 1,
+  },
   folderText: { fontSize: 18 },
   modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 20 },
   modalContent: { backgroundColor: '#fff', borderRadius: 8, padding: 20 },

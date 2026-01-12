@@ -3,6 +3,11 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, TextInput } 
 import AddButton from '../components/addFolderButton';
 import { AntDesign } from '@expo/vector-icons';
 
+const getTitle = (content: string): string => {
+  if (!content || content.trim() === '') return 'Untitled';
+  const firstLine = content.split('\n')[0];
+  return firstLine.trim() || 'Untitled';
+};
 type Note = {
   title: string;
   content: string;
@@ -28,8 +33,8 @@ export default function NotesScreen({ route, navigation }: NotesScreenProps) {
   const folderName = route.params?.folderName ?? 'Notes';//will deault the name to Notes if no input
   const [notes, setNotes] = useState<Note[]>(route.params?.notes ?? []);
   const updateNotes = route.params?.updateNotes ?? (() => {});
-  const [modalVisible, setModalVisible] = useState(false);
-  const [noteTitle, setNoteTitle] = useState('');
+  //const [modalVisible, setModalVisible] = useState(false);
+  //const [noteTitle, setNoteTitle] = useState('');
 
 
   const openNote = (index: number, note: Note) => {
@@ -45,7 +50,7 @@ export default function NotesScreen({ route, navigation }: NotesScreenProps) {
   });
 };
 
-const createNote = () => {
+/*const createNote = () => {
   if (noteTitle.trim() === '') return;
   const newNote: Note = { title: noteTitle, content: '' };//actually creates a notea
   navigation.navigate('NoteEditor', {
@@ -59,8 +64,20 @@ const createNote = () => {
   });
   setNoteTitle('');//closes modal
   setModalVisible(false);
-};
+};*/
 
+const createNote = () => {
+  const newNote: Note = { title: '', content: '' };
+  navigation.navigate('NoteEditor', {
+    note: newNote,
+    index: notes.length,
+    onSave: (savedNote: Note) => {
+      const updatedNotes = [...notes, savedNote];
+      setNotes(updatedNotes);
+      updateNotes(updatedNotes); // ADD THIS LINE
+    },
+  });
+};
 const deleteNote = (indexToDelete: number) => {
   const updatedNotes = notes.filter((_, index) => index !== indexToDelete);//removes the note
   setNotes(updatedNotes);  
@@ -76,18 +93,20 @@ const deleteNote = (indexToDelete: number) => {
           data={notes}
           keyExtractor={(_, index) => index.toString()}
           renderItem={({ item, index }) => (
-  <View style={styles.noteItem}>
-    <TouchableOpacity
-      style={styles.noteContent}
-      onPress={() => openNote(index, item)}
-    >
-      <Text style={styles.noteText}>{item.title || 'Untitled'}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => deleteNote(index)}>
-      <AntDesign name="delete" size={20} color="red" />
-    </TouchableOpacity>
-  </View>
-)}
+            <View style={styles.noteItem}>
+              <TouchableOpacity
+                style={styles.noteContent}
+                onPress={() => openNote(index, item)}
+              >
+                <Text style={styles.noteText}>
+                  {item.title && item.title.trim() ? item.title : 'Untitled'}
+              </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => deleteNote(index)}>
+                <AntDesign name="delete" size={20} color="red" />
+              </TouchableOpacity>
+            </View>
+          )}
           ListEmptyComponent={
             <Text style={{ textAlign: 'center', marginTop: 20 }}>
               No notes yet
@@ -95,29 +114,8 @@ const deleteNote = (indexToDelete: number) => {
           }
         />
       </View>
-
       {/* Add Note Button */}
-      <AddButton onPress={() => setModalVisible(true)} />
-        <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>New Note</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Note Title"
-              value={noteTitle}
-              onChangeText={setNoteTitle}
-            />
-            <TouchableOpacity style={styles.modalButton} onPress={createNote}>
-              <Text style={styles.modalButtonText}>Create</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#aaa', marginTop: 10 }]} onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
+      <AddButton onPress={createNote} />
     </View>
   );
 }
@@ -151,10 +149,4 @@ noteContent: {
   flex: 1,
 },
   noteText: { fontSize: 18 },
-  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 8, padding: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  modalInput: { borderWidth: 1, borderColor: '#aaa', padding: 10, borderRadius: 5, marginBottom: 10 },
-  modalButton: { backgroundColor: '#ff9900', padding: 12, borderRadius: 5, alignItems: 'center' },
-  modalButtonText: { color: 'white', fontWeight: 'bold' },
-});
+  });
