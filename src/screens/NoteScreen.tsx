@@ -11,6 +11,7 @@ const getTitle = (content: string): string => {
 type Note = {
   title: string;
   content: string;
+  lastModified: number;
 };
 
 type NotesScreenProps = {
@@ -20,6 +21,7 @@ type NotesScreenProps = {
         folderIndex: number;
         notes: Note[];
         updateNotes: (newNotes: Note[]) => void;//update note function that takes in a note and returns void
+        autoOpenLastNote?: boolean;
       }
      };
   navigation: {
@@ -33,9 +35,14 @@ export default function NotesScreen({ route, navigation }: NotesScreenProps) {
   const folderName = route.params?.folderName ?? 'Notes';//will deault the name to Notes if no input
   const [notes, setNotes] = useState<Note[]>(route.params?.notes ?? []);
   const updateNotes = route.params?.updateNotes ?? (() => {});
-  //const [modalVisible, setModalVisible] = useState(false);
-  //const [noteTitle, setNoteTitle] = useState('');
 
+  React.useEffect(() => {
+  if (route.params?.autoOpenLastNote && notes.length > 0) {
+    const lastNoteIndex = notes.length - 1;
+    const lastNote = notes[lastNoteIndex];
+    openNote(lastNoteIndex, lastNote);
+  }
+}, [])
 
   const openNote = (index: number, note: Note) => {
   navigation.navigate('NoteEditor', {//goes to note
@@ -43,7 +50,7 @@ export default function NotesScreen({ route, navigation }: NotesScreenProps) {
     index,
     onSave: (newNote: Note) => {
       const updatedNotes = [...notes];
-      updatedNotes[index] = newNote;
+      updatedNotes[index] = { ...newNote, lastModified: Date.now() }; // Update timestamp
       setNotes(updatedNotes);  
       updateNotes(updatedNotes);
     },
@@ -67,7 +74,11 @@ export default function NotesScreen({ route, navigation }: NotesScreenProps) {
 };*/
 
 const createNote = () => {
-  const newNote: Note = { title: '', content: '' };
+  const newNote: Note = { 
+    title: '', 
+    content: '',
+  lastModified: Date.now()
+};
   navigation.navigate('NoteEditor', {
     note: newNote,
     index: notes.length,
@@ -84,11 +95,11 @@ const deleteNote = (indexToDelete: number) => {
   updateNotes(updatedNotes);  
 };
 
+
   return (
     <View style={styles.container}>
+          <View style={styles.body}>
 
-      {/* Notes List */}
-      <View style={styles.body}>
         <FlatList
           data={notes}
           keyExtractor={(_, index) => index.toString()}
@@ -114,6 +125,7 @@ const deleteNote = (indexToDelete: number) => {
           }
         />
       </View>
+      
       {/* Add Note Button */}
       <AddButton onPress={createNote} />
     </View>

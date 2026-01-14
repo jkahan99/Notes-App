@@ -11,10 +11,13 @@ type FolderListScreenProps = {
 type Folder = {
   name: string;
   notes: Note[];
+  lastModified: number;
+
 };
 type Note = {
   title: string;//how is title different then name?
   content: string;
+  lastModified: number;
 };
 
 //securestorage
@@ -25,16 +28,74 @@ export default function FolderList({ navigation }: FolderListScreenProps) {
   const [folderName, setFolderName] = useState<string>('');//tracks what the user types in the modal
 
   const createFolder = () => {
-    if (folderName.trim() === '') return;
-    setFolders([...folders, {name: folderName, notes: [] as Note[] }]);
-    setFolderName('');
-    setModalVisible(false);
-  };
+  if (folderName.trim() === '') return;
+  setFolders([...folders, {
+    name: folderName, 
+    notes: [] as Note[],
+    lastModified: Date.now()
+  }]);
+  setFolderName('');//might need to be deketed
+  setModalVisible(false);
+}; // ADD THIS CLOSING BRACE
 
-  const updateFolderNotes = (folderIndex: number, newNotes: Note[]) => {
-  const updatedFolders = [...folders];
-  updatedFolders[folderIndex].notes = newNotes;
-  setFolders(updatedFolders);
+
+  const openDefaultFolder = () => {
+      if (folders.length === 0) {
+    // No folders exist, create default folder
+    const defaultFolder: Folder = {
+      name: 'Notes',
+      notes: [],
+      lastModified: Date.now()
+    };
+    
+    const newNote: Note = {
+      title: '',
+      content: '',
+      lastModified: Date.now()
+    };
+    
+    defaultFolder.notes = [newNote];
+    setFolders([defaultFolder]);
+    
+    // Navigate to it
+    navigation.navigate('Notes', {
+      folderName: defaultFolder.name,
+      folderIndex: 0,
+      notes: defaultFolder.notes,
+      updateNotes: (newNotes: Note[]) => updateFolderNotes(0, newNotes),
+      autoOpenLastNote: true,
+    });
+    return;}
+    
+        const defaultFolderIndex = 0;
+        const defaultFolder = folders[defaultFolderIndex];
+        
+        // Create a new empty note
+        const newNote: Note = {
+          title: '',
+          content: '',
+          lastModified: Date.now()
+        };
+        
+        // Add it to the folder
+        const updatedNotes = [...defaultFolder.notes, newNote];
+        updateFolderNotes(defaultFolderIndex, updatedNotes);
+        
+        // Navigate to the Notes screen with the updated notes
+        navigation.navigate('Notes', {
+          folderName: defaultFolder.name,
+          folderIndex: defaultFolderIndex,
+          notes: updatedNotes,
+          updateNotes: (newNotes: Note[]) => updateFolderNotes(defaultFolderIndex, newNotes),
+          autoOpenLastNote: true, // Signal to open the note we just created
+        });
+      };
+
+        const updateFolderNotes = (folderIndex: number, newNotes: Note[]) => {
+        const updatedFolders = [...folders];
+          updatedFolders[folderIndex].notes = newNotes; // ADD THIS LINE - actually update the notes!
+        updatedFolders[folderIndex].lastModified = Date.now(); // Update folder timestamp
+        setFolders(updatedFolders);
 };
 
 const deleteFolder = (indexToDelete: number) => {
@@ -51,8 +112,11 @@ const loadFolders = async () => {
     }
     else {
       // No folders exist, create default "Notes" folder
-      const defaultFolder: Folder = { name: 'Default Notes', notes: [] };
-      setFolders([defaultFolder]);
+const defaultFolder: Folder = { 
+  name: 'Default Notes', 
+  notes: [],
+  lastModified: Date.now()
+};      setFolders([defaultFolder]);
     }
   } catch (error) {
     console.error('Failed to load folders:', error);
@@ -76,6 +140,7 @@ useEffect(() => {
 }, [folders]);
 
 
+
   return (
     <View style={styles.container}>
       
@@ -97,16 +162,32 @@ useEffect(() => {
               >
                 <Text style={styles.folderText}>{item.name}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deleteFolder(index)}>
-                <AntDesign name="delete" size={20} color="red" />
-              </TouchableOpacity>
+              {index !== 0 && (
+  <TouchableOpacity onPress={() => deleteFolder(index)}>
+    <AntDesign name="delete" size={20} color="red" />
+  </TouchableOpacity>
+)}
             </View>
           )}
           ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>No folders yet</Text>}
         />
       </View>
 
-      <AddFolderButton onPress={() => setModalVisible(true)} />
+              <View style={styles.buttonRow}>
+  <TouchableOpacity 
+    style={[styles.bottomButton, { backgroundColor: '#22cf4aa2' }]} 
+    onPress={openDefaultFolder}
+  >
+    <Text style={styles.buttonText}>+ Note</Text>
+  </TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={styles.bottomButton} 
+    onPress={() => setModalVisible(true)}
+  >
+    <Text style={styles.buttonText}>+ Folder</Text>
+  </TouchableOpacity>
+</View>
 
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}> 
         <View style={styles.modalOverlay}> 
@@ -146,6 +227,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  buttonRow: {
+  position: 'absolute',
+  bottom: 20,
+  right: 20,
+  flexDirection: 'row',
+  gap: 10,
+},
+bottomButton: {
+  backgroundColor: '#ff9900',
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  borderRadius: 25,
+  elevation: 5,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+},
+buttonText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 14,
+},
+
   folderContent: {
     flex: 1,
   },
